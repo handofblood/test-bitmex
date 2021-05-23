@@ -3,7 +3,14 @@ import App from './App.vue'
 import router from './router'
 import store from './store'
 
-Vue.config.productionTip = false
+
+
+import config from './config/config.js';
+window.env = config;
+Vue.prototype.$env = config;
+window.config = config;
+
+Vue.config.productionTip = false;
 
 new Vue({
   router,

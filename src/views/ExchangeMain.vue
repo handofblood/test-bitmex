@@ -41,9 +41,9 @@
         </div>
         <div class="new-order sm">
           <div class="operation-w">
-            <button :disabled="!orderValue" @click="orderSell(orderValue)" >Sell</button>
+            <button :disabled="orderValue<0" @click="orderSell(orderValue)" >Sell</button>
             <InputPositive class="custom-input" v-model="orderValue" />
-            <button :disabled="!orderValue" @click="orderBuy(orderValue)">Buy</button>
+            <button :disabled="orderValue<0" @click="orderBuy(orderValue)">Buy</button>
           </div>
         </div>
       </div>
@@ -79,7 +79,7 @@
 
 <script>
 import {OrdersAPI} from "../../api";
-
+import { mapActions, mapGetters,mapMutations } from 'vuex'
 import InputPositive from "@/components/ui/inputPositive";
 import Preloader from "@/components/ui/preloader";
 
@@ -100,21 +100,26 @@ export default {
     }
   },
   computed: {
-    currencyInstruments() {
-      return this.$store.getters['trade/currencyInstruments'];
-    },
-    quotes() {
-      return this.$store.getters['trade/quotes'];
-    },
-    orderHistory() {
-      return this.$store.getters['trade/orderHistory'];
-    }
+    ...mapGetters({
+      quotes: 'trade/quotes',
+      orderHistory: 'trade/orderHistory',
+      currencyInstruments: 'trade/currencyInstruments',
+    }),
   },
   methods: {
+    ...mapActions({
+      loadQuotes: 'trade/loadQuotes',
+      loadOrderHistory: 'trade/loadOrderHistory',
+      loadInstruments: 'trade/loadInstruments',
+    }),
+    ...mapMutations({
+      updateLatestQuote: 'trade/updateLatestQuote',
+      updateBySymbolName: 'trade/updateBySymbolName',
+    }),
     getQuotes(pair) {
       this.loaded.quotes = false;
       this.currentPair = pair;
-      this.$store.dispatch('trade/loadQuotes', pair.symbol).then(() => {
+      this.loadQuotes(pair.symbol).then(() => {
         this.loaded.quotes = true;
         this.openSocketQuote(pair.symbol)
       });
@@ -129,15 +134,22 @@ export default {
           })
           .then(res => {
             console.log(res);
-            this.$store.dispatch('trade/loadOrderHistory');
+            this.loadOrderHistory();
           }).catch(err => {
         alert(err.response.data.error.message);
       });
     },
     openSocketQuote(symbol) {
-      this.socket.socketQuote.send(JSON.stringify({op: 'unsubscribe', args: 'tradeBin1m'}));
-
-      this.socket.socketQuote.send(JSON.stringify({op: 'subscribe', args: `tradeBin1m:${symbol}`}));
+      this.socket.socketQuote.send(
+          JSON.stringify(
+              {op: 'unsubscribe', args: 'tradeBin1m'}
+          )
+      );
+      this.socket.socketQuote.send(
+          JSON.stringify(
+              {op: 'subscribe', args: `tradeBin1m:${symbol}`}
+          )
+      );
     },
     orderSell(value) {
       OrdersAPI.orderCreate(
@@ -149,7 +161,7 @@ export default {
           })
           .then(res => {
             console.log(res);
-            this.$store.dispatch('trade/loadOrderHistory');
+            this.loadOrderHistory();
           }).catch(err => {
         alert(err.response.data.error.message);
       });
@@ -168,12 +180,12 @@ export default {
         if (data){
         if (table === 'tradeBin1m') {
           if (new Date(this.quotes[0].timestamp) < new Date(data[0].timestamp)) {
-            this.$store.commit('trade/updateLatestQuote', data[0]);
+            this.updateLatestQuote(data[0]);
           }
         } else {
           this.currencyInstruments.forEach(item => {
             if (item.symbol === data[0].symbol) {
-              this.$store.commit('trade/updateBySymbolName', data[0]);
+              this.updateBySymbolName(data[0]);
             }
           });
         }
@@ -193,16 +205,16 @@ export default {
   },
   created() {
 
-    this.$store.dispatch('trade/loadInstruments').then((res) => {
+    this.loadInstruments().then((res) => {
       this.loaded.pairs = true;
-      this.$store.dispatch('trade/loadQuotes', res[0].symbol).then(() => {
+      this.loadQuotes(res[0].symbol).then(() => {
         this.loaded.quotes = true;
         this.currentPair = res[0];
         this.createSocketsConnection(res[0].symbol);
       });
     });
 
-    this.$store.dispatch('trade/loadOrderHistory');
+    this.loadOrderHistory();
 
   }
 }

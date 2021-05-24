@@ -1,7 +1,8 @@
 <template>
   <input
-    @input="$emit('input',$event.target.value)"
+    @input="$emit('input',$event.target.value<0 ? 0 : $event.target.value )"
     :value="value"
+    min="0"
     type="number">
 </template>
 
@@ -11,13 +12,7 @@
     props:{
       value:{},
     },
-    watch:{
-      value(){
-        if (this.value<1 && this.value){
-          this.value=1;
-        }
-      }
-    }
+
   }
 </script>
 

@@ -163,7 +163,9 @@ export default {
 
       this.socket.socketQuote.binaryType = "arraybuffer";
       this.socket.socketQuote.onmessage = (e) => {
+
         let {table, data} = JSON.parse(e.data);
+        if (data){
         if (table === 'tradeBin1m') {
           if (new Date(this.quotes[0].timestamp) < new Date(data[0].timestamp)) {
             this.$store.commit('trade/updateLatestQuote', data[0]);
@@ -174,6 +176,7 @@ export default {
               this.$store.commit('trade/updateBySymbolName', data[0]);
             }
           });
+        }
         }
       };
     },
